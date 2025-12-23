@@ -6,7 +6,8 @@ pipeline {
   }
 
   environment {
-    TASK_PATH = 'TerminalBench/fix-nonroot-ci-permissions'
+    // This repo's Harbor task lives at the repository root.
+    TASK_PATH = '.'
     OPENAI_BASE_URL = 'https://api.portkey.ai/v1'
   }
 
@@ -18,13 +19,23 @@ set -euo pipefail
 
 echo "Node: $(hostname)"
 echo "Workspace: $WORKSPACE"
+echo "User: $(id -un)"
+
+echo "Task path: $TASK_PATH"
+if [ ! -d "$TASK_PATH" ]; then
+  echo "ERROR: TASK_PATH does not exist: $TASK_PATH"
+  echo "PWD: $(pwd)"
+  echo "Workspace contents:"
+  ls -la
+  exit 1
+fi
 
 echo "Checking Docker access..."
 if ! docker version >/dev/null 2>&1; then
   echo ""
   echo "ERROR: Jenkins user cannot access Docker."
-  echo "To fix: Add Jenkins user to the docker group and restart the agent."
-  echo "Example: sudo usermod -aG docker jenkins && sudo systemctl restart docker"
+  echo "To fix: Add the agent service user to the docker group and restart the agent."
+  echo "Example: sudo usermod -aG docker $(id -un) && sudo systemctl restart jenkins-agent"
   exit 1
 fi
 
