@@ -28,7 +28,12 @@ if ! docker version >/dev/null 2>&1; then
   exit 1
 fi
 
-harbor --help >/dev/null
+        # Install Harbor CLI and ensure PATH
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        source "$HOME/.local/bin/env"
+        uv tool install harbor==0.1.25 --python 3.13
+        export PATH="$HOME/.local/bin:$PATH"
+        harbor --help >/dev/null
 '''
       }
     }
