@@ -47,20 +47,27 @@ harbor tasks check "$TASK_PATH" --model openai/@openai-tbench/gpt-5
     }
 
     stage('Agent Runs (optional)') {
-      when {
-        expression { return env.OPENAI_API_KEY?.trim() }
-      }
+        sh '''#!/usr/bin/env bash
+set -euo pipefail
+# Uses OPENAI_API_KEY and OPENAI_BASE_URL from Jenkins environment
       steps {
         sh '''#!/usr/bin/env bash
 set -euo pipefail
 
-# Uses OPENAI_API_KEY and OPENAI_BASE_URL from Jenkins environment
-echo "Running GPT-5 agent..."
-harbor run -a terminus-2 -m openai/@openai-tbench/gpt-5 -p "$TASK_PATH"
-
 echo "Running Claude Sonnet 4.5 agent..."
 harbor run -a terminus-2 -m openai/@anthropic-tbench/claude-sonnet-4-5-20250929 -p "$TASK_PATH"
+
+echo "Checking Docker access..."
+if ! docker version >/dev/null 2>&1; then
+  echo "\nERROR: Jenkins user cannot access Docker.\n"
+  echo "To fix: Add Jenkins user to the docker group and restart the agent."
+  echo "Example: sudo usermod -aG docker jenkins && sudo systemctl restart docker"
+  exit 1
+fi
+
 '''
+'''
+      }
       }
     }
   }
