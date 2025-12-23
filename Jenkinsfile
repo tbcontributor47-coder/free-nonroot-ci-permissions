@@ -43,6 +43,14 @@ fi
         sh '''#!/usr/bin/env bash
 set -euo pipefail
 
+export PATH="$HOME/.local/bin:$PATH"
+if [ -f "$HOME/.local/bin/env" ]; then
+  # Adds uv/uvx and other tool shims to PATH
+  source "$HOME/.local/bin/env"
+fi
+
+command -v harbor >/dev/null || { echo "harbor not found in PATH (did Preflight run?)"; exit 127; }
+
 harbor run --agent oracle --path "$TASK_PATH"
 '''
       }
@@ -52,6 +60,13 @@ harbor run --agent oracle --path "$TASK_PATH"
       steps {
         sh '''#!/usr/bin/env bash
 set -euo pipefail
+
+export PATH="$HOME/.local/bin:$PATH"
+if [ -f "$HOME/.local/bin/env" ]; then
+  source "$HOME/.local/bin/env"
+fi
+
+command -v harbor >/dev/null || { echo "harbor not found in PATH (did Preflight run?)"; exit 127; }
 
 harbor tasks check "$TASK_PATH" --model openai/@openai-tbench/gpt-5
 '''
@@ -65,6 +80,13 @@ harbor tasks check "$TASK_PATH" --model openai/@openai-tbench/gpt-5
       steps {
         sh '''#!/usr/bin/env bash
 set -euo pipefail
+
+export PATH="$HOME/.local/bin:$PATH"
+if [ -f "$HOME/.local/bin/env" ]; then
+  source "$HOME/.local/bin/env"
+fi
+
+command -v harbor >/dev/null || { echo "harbor not found in PATH (did Preflight run?)"; exit 127; }
 
 echo "Running GPT-5 agent..."
 harbor run -a terminus-2 -m openai/@openai-tbench/gpt-5 -p "$TASK_PATH"
