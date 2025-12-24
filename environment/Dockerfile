@@ -1,25 +1,20 @@
 FROM ubuntu:22.04
 
-# Install sudo
+# curl is used by the verifier to install uv
 RUN apt-get update && \
-    apt-get install -y sudo curl && \
+    apt-get install -y --no-install-recommends curl ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
-# Create non-root user and add to sudo group
-RUN useradd -m -u 1001 ciuser && \
-    echo "ciuser ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
-
-# Create logs directory with proper permissions for non-root user
-RUN mkdir -p /logs/verifier && \
-    chown -R ciuser:ciuser /logs
+# Create non-root user
+RUN useradd -m -u 1001 ciuser
 
 # Create application directory
 WORKDIR /app
 
-# Create build directory with incorrect permissions (intentional)
+# Create build directory with secure permissions for ciuser
 RUN mkdir -p /app/build && \
     chmod 755 /app/build && \
-    chown root:root /app/build
+    chown ciuser:ciuser /app/build
 
 # Add a failing build script
 RUN printf '#!/bin/bash\nset -e\n\necho "BUILD_STATUS=SUCCESS" > /app/build/output.txt\n' \
@@ -29,11 +24,6 @@ RUN printf '#!/bin/bash\nset -e\n\necho "BUILD_STATUS=SUCCESS" > /app/build/outp
 
 # Switch to non-root user
 USER ciuser
-
-# Add entrypoint that ensures /logs/verifier exists with correct permissions
-COPY --chown=ciuser:ciuser environment/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-ENTRYPOINT ["/entrypoint.sh"]
 
 # Default command does nothing; agent must run build explicitly
 CMD ["bash"]
