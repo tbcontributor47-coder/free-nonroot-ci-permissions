@@ -1,8 +1,11 @@
 pipeline {
-  agent { label 'Linux-01' }
+  agent { 
+    label 'Linux-01'
+  }
 
   options {
     timestamps()
+    disableConcurrentBuilds()
   }
 
   environment {
