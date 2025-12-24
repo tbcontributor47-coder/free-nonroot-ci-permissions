@@ -83,6 +83,79 @@ command -v harbor >/dev/null || { echo "harbor not found in PATH (did Preflight 
 TASK_ABS="$(cd "$WORKSPACE/$TASK_PATH" 2>/dev/null && pwd -P)"
 echo "Task absolute path: $TASK_ABS"
 harbor run --agent oracle --path "$TASK_ABS" 2>&1 | tee logs/oracle.log
+
+RESULT_JSON="$(awk '/Results written to /{print $NF}' logs/oracle.log | tail -n1)"
+if [ -z "$RESULT_JSON" ]; then
+  echo "ERROR: Could not find result.json path in logs/oracle.log"
+  exit 1
+fi
+
+if [ ! -f "$RESULT_JSON" ] && [ -f "$WORKSPACE/$RESULT_JSON" ]; then
+  RESULT_JSON="$WORKSPACE/$RESULT_JSON"
+fi
+
+if [ ! -f "$RESULT_JSON" ]; then
+  echo "ERROR: Harbor result file not found: $RESULT_JSON"
+  exit 1
+fi
+
+echo ""
+echo "========== Harbor Oracle result.json =========="
+cat "$RESULT_JSON" || true
+echo "========== Harbor Oracle job dir listing =========="
+ls -la "$(dirname "$RESULT_JSON")" || true
+echo "========== Harbor Oracle job.log =========="
+cat "$(dirname "$RESULT_JSON")/job.log" || true
+echo "========== Harbor Oracle trial directory =========="
+TRIAL_DIR="$(find "$(dirname "$RESULT_JSON")" -mindepth 1 -maxdepth 1 -type d | head -n1)"
+if [ -n "$TRIAL_DIR" ]; then
+  echo "Trial dir: $TRIAL_DIR"
+  ls -laR "$TRIAL_DIR" || true
+  echo "--- Trial stdout ---"
+  cat "$TRIAL_DIR/stdout" 2>/dev/null || echo "(no stdout)"
+  echo "--- Trial stderr ---"
+  cat "$TRIAL_DIR/stderr" 2>/dev/null || echo "(no stderr)"
+fi
+echo "================================================="
+
+PYTHON_BIN="$(command -v python3 || command -v python || true)"
+if [ -z "$PYTHON_BIN" ]; then
+  echo "ERROR: python/python3 not found; cannot validate Harbor result.json"
+  exit 1
+fi
+
+"$PYTHON_BIN" - "$RESULT_JSON" <<'PY'
+import json
+import sys
+
+if len(sys.argv) < 2:
+    print("ERROR: result.json path argument missing")
+    sys.exit(1)
+
+path = sys.argv[1]
+
+with open(path, "r", encoding="utf-8") as f:
+    data = json.load(f)
+
+def max_errors(node):
+    if isinstance(node, dict):
+        m = 0
+        for k, v in node.items():
+            if isinstance(k, str) and k.lower() in ("n_errors", "errors"):
+                try:
+                    m = max(m, int(v))
+                except Exception:
+                    pass
+            m = max(m, max_errors(v))
+        return m
+    if isinstance(node, list):
+        return max((max_errors(x) for x in node), default=0)
+    return 0
+
+err = max_errors(data)
+print(f"Harbor reported errors: {err}")
+sys.exit(1 if err > 0 else 0)
+PY
 '''
       }
     }
@@ -131,8 +204,150 @@ echo "Task absolute path: $TASK_ABS"
 echo "Running GPT-5 agent..."
 harbor run -a terminus-2 -m openai/@openai-tbench/gpt-5 -p "$TASK_ABS" 2>&1 | tee logs/agent-gpt5.log
 
+RESULT_JSON="$(awk '/Results written to /{print $NF}' logs/agent-gpt5.log | tail -n1)"
+if [ -z "$RESULT_JSON" ]; then
+  echo "ERROR: Could not find result.json path in logs/agent-gpt5.log"
+  exit 1
+fi
+if [ ! -f "$RESULT_JSON" ] && [ -f "$WORKSPACE/$RESULT_JSON" ]; then
+  RESULT_JSON="$WORKSPACE/$RESULT_JSON"
+fi
+if [ ! -f "$RESULT_JSON" ]; then
+  echo "ERROR: Harbor result file not found: $RESULT_JSON"
+  exit 1
+fi
+
+echo ""
+echo "========== Harbor Agent (GPT-5) result.json =========="
+cat "$RESULT_JSON" || true
+echo "========== Harbor Agent (GPT-5) job dir listing =========="
+ls -la "$(dirname "$RESULT_JSON")" || true
+echo "========== Harbor Agent (GPT-5) job.log =========="
+cat "$(dirname "$RESULT_JSON")/job.log" || true
+echo "========== Harbor Agent (GPT-5) trial directory =========="
+TRIAL_DIR="$(find "$(dirname "$RESULT_JSON")" -mindepth 1 -maxdepth 1 -type d | head -n1)"
+if [ -n "$TRIAL_DIR" ]; then
+  echo "Trial dir: $TRIAL_DIR"
+  ls -laR "$TRIAL_DIR" || true
+  echo "--- Trial stdout ---"
+  cat "$TRIAL_DIR/stdout" 2>/dev/null || echo "(no stdout)"
+  echo "--- Trial stderr ---"
+  cat "$TRIAL_DIR/stderr" 2>/dev/null || echo "(no stderr)"
+fi
+echo "========================================================"
+
+PYTHON_BIN="$(command -v python3 || command -v python || true)"
+if [ -z "$PYTHON_BIN" ]; then
+  echo "ERROR: python/python3 not found; cannot validate Harbor result.json"
+  exit 1
+fi
+
+"$PYTHON_BIN" - "$RESULT_JSON" <<'PY'
+import json
+import sys
+
+if len(sys.argv) < 2:
+    print("ERROR: result.json path argument missing")
+    sys.exit(1)
+
+path = sys.argv[1]
+
+with open(path, "r", encoding="utf-8") as f:
+    data = json.load(f)
+
+def max_errors(node):
+    if isinstance(node, dict):
+        m = 0
+        for k, v in node.items():
+            if isinstance(k, str) and k.lower() in ("n_errors", "errors"):
+                try:
+                    m = max(m, int(v))
+                except Exception:
+                    pass
+            m = max(m, max_errors(v))
+        return m
+    if isinstance(node, list):
+        return max((max_errors(x) for x in node), default=0)
+    return 0
+
+err = max_errors(data)
+print(f"Harbor reported errors: {err}")
+sys.exit(1 if err > 0 else 0)
+PY
+
 echo "Running Claude Sonnet 4.5 agent..."
 harbor run -a terminus-2 -m openai/@anthropic-tbench/claude-sonnet-4-5-20250929 -p "$TASK_ABS" 2>&1 | tee logs/agent-claude.log
+
+RESULT_JSON="$(awk '/Results written to /{print $NF}' logs/agent-claude.log | tail -n1)"
+if [ -z "$RESULT_JSON" ]; then
+  echo "ERROR: Could not find result.json path in logs/agent-claude.log"
+  exit 1
+fi
+if [ ! -f "$RESULT_JSON" ] && [ -f "$WORKSPACE/$RESULT_JSON" ]; then
+  RESULT_JSON="$WORKSPACE/$RESULT_JSON"
+fi
+if [ ! -f "$RESULT_JSON" ]; then
+  echo "ERROR: Harbor result file not found: $RESULT_JSON"
+  exit 1
+fi
+
+echo ""
+echo "========== Harbor Agent (Claude) result.json =========="
+cat "$RESULT_JSON" || true
+echo "========== Harbor Agent (Claude) job dir listing =========="
+ls -la "$(dirname "$RESULT_JSON")" || true
+echo "========== Harbor Agent (Claude) job.log =========="
+cat "$(dirname "$RESULT_JSON")/job.log" || true
+echo "========== Harbor Agent (Claude) trial directory =========="
+TRIAL_DIR="$(find "$(dirname "$RESULT_JSON")" -mindepth 1 -maxdepth 1 -type d | head -n1)"
+if [ -n "$TRIAL_DIR" ]; then
+  echo "Trial dir: $TRIAL_DIR"
+  ls -laR "$TRIAL_DIR" || true
+  echo "--- Trial stdout ---"
+  cat "$TRIAL_DIR/stdout" 2>/dev/null || echo "(no stdout)"
+  echo "--- Trial stderr ---"
+  cat "$TRIAL_DIR/stderr" 2>/dev/null || echo "(no stderr)"
+fi
+echo "======================================================="
+
+PYTHON_BIN="$(command -v python3 || command -v python || true)"
+if [ -z "$PYTHON_BIN" ]; then
+  echo "ERROR: python/python3 not found; cannot validate Harbor result.json"
+  exit 1
+fi
+
+"$PYTHON_BIN" - "$RESULT_JSON" <<'PY'
+import json
+import sys
+
+if len(sys.argv) < 2:
+    print("ERROR: result.json path argument missing")
+    sys.exit(1)
+
+path = sys.argv[1]
+
+with open(path, "r", encoding="utf-8") as f:
+    data = json.load(f)
+
+def max_errors(node):
+    if isinstance(node, dict):
+        m = 0
+        for k, v in node.items():
+            if isinstance(k, str) and k.lower() in ("n_errors", "errors"):
+                try:
+                    m = max(m, int(v))
+                except Exception:
+                    pass
+            m = max(m, max_errors(v))
+        return m
+    if isinstance(node, list):
+        return max((max_errors(x) for x in node), default=0)
+    return 0
+
+err = max_errors(data)
+print(f"Harbor reported errors: {err}")
+sys.exit(1 if err > 0 else 0)
+PY
 '''
       }
     }
@@ -189,7 +404,7 @@ git push "https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@${REPO_URL}" "${LOG_BRANCH}
 
   post {
     always {
-      archiveArtifacts artifacts: 'logs/**', allowEmptyArchive: true
+      archiveArtifacts artifacts: 'logs/**,jobs/**', allowEmptyArchive: true
     }
   }
 }
