@@ -6,11 +6,13 @@ pipeline {
   }
 
   environment {
-    // This repo's Harbor task lives at the repository root.
+    // This repo IS the Harbor task (root contains instruction.md, task.toml, etc)
     TASK_PATH = '.'
     OPENAI_BASE_URL = 'https://api.portkey.ai/v1'
     // Set to 'true' in Jenkins job env to push logs back to Git.
     PUSH_LOGS_TO_GIT = 'false'
+    // Override Docker Compose project name to avoid @ characters from workspace suffixes
+    COMPOSE_PROJECT_NAME = 'fixnonrootci'
   }
 
   stages {
@@ -62,23 +64,15 @@ fi
 set -euo pipefail
 
 mkdir -p logs
-mkdir -p harborws
 
 export PATH="$HOME/.local/bin:$PATH"
 if [ -f "$HOME/.local/bin/env" ]; then
-  # Adds uv/uvx and other tool shims to PATH
   source "$HOME/.local/bin/env"
 fi
 
 command -v harbor >/dev/null || { echo "harbor not found in PATH (did Preflight run?)"; exit 127; }
 
-# Harbor uses Docker Compose under the hood and derives the compose project name
-# from the current working directory. Jenkins workspaces can include '@2' etc,
-# which Docker Compose rejects. Run Harbor from a safe subdir.
-TASK_ABS="$(cd "$WORKSPACE/$TASK_PATH" && pwd)"
-cd harborws
-
-harbor run --agent oracle --path "$TASK_ABS" 2>&1 | tee ../logs/oracle.log
+harbor run --agent oracle --path "$TASK_PATH" 2>&1 | tee logs/oracle.log
 '''
       }
     }
@@ -89,7 +83,6 @@ harbor run --agent oracle --path "$TASK_ABS" 2>&1 | tee ../logs/oracle.log
 set -euo pipefail
 
 mkdir -p logs
-mkdir -p harborws
 
 export PATH="$HOME/.local/bin:$PATH"
 if [ -f "$HOME/.local/bin/env" ]; then
@@ -98,10 +91,7 @@ fi
 
 command -v harbor >/dev/null || { echo "harbor not found in PATH (did Preflight run?)"; exit 127; }
 
-TASK_ABS="$(cd "$WORKSPACE/$TASK_PATH" && pwd)"
-cd harborws
-
-harbor tasks check "$TASK_ABS" --model openai/@openai-tbench/gpt-5 2>&1 | tee ../logs/checks.log
+harbor tasks check "$TASK_PATH" --model openai/@openai-tbench/gpt-5 2>&1 | tee logs/checks.log
 '''
       }
     }
@@ -115,7 +105,6 @@ harbor tasks check "$TASK_ABS" --model openai/@openai-tbench/gpt-5 2>&1 | tee ..
 set -euo pipefail
 
 mkdir -p logs
-mkdir -p harborws
 
 export PATH="$HOME/.local/bin:$PATH"
 if [ -f "$HOME/.local/bin/env" ]; then
@@ -124,14 +113,11 @@ fi
 
 command -v harbor >/dev/null || { echo "harbor not found in PATH (did Preflight run?)"; exit 127; }
 
-TASK_ABS="$(cd "$WORKSPACE/$TASK_PATH" && pwd)"
-cd harborws
-
 echo "Running GPT-5 agent..."
-harbor run -a terminus-2 -m openai/@openai-tbench/gpt-5 -p "$TASK_ABS" 2>&1 | tee ../logs/agent-gpt5.log
+harbor run -a terminus-2 -m openai/@openai-tbench/gpt-5 -p "$TASK_PATH" 2>&1 | tee logs/agent-gpt5.log
 
 echo "Running Claude Sonnet 4.5 agent..."
-harbor run -a terminus-2 -m openai/@anthropic-tbench/claude-sonnet-4-5-20250929 -p "$TASK_ABS" 2>&1 | tee ../logs/agent-claude.log
+harbor run -a terminus-2 -m openai/@anthropic-tbench/claude-sonnet-4-5-20250929 -p "$TASK_PATH" 2>&1 | tee logs/agent-claude.log
 '''
       }
     }
