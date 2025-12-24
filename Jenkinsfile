@@ -222,7 +222,7 @@ command -v harbor >/dev/null || { echo "harbor not found in PATH (did Preflight 
 
 TASK_ABS="$(cd "$WORKSPACE/$TASK_PATH" 2>/dev/null && pwd -P)"
 echo "Task absolute path: $TASK_ABS"
-      harbor tasks check "$TASK_ABS" --model openai/@openai-tbench/gpt-5 --force-build 2>&1 | tee logs/checks.log
+        harbor tasks check "$TASK_ABS" --model openai/@openai-tbench/gpt-5 2>&1 | tee logs/checks.log
 '''
       }
     }
