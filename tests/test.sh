@@ -1,15 +1,18 @@
 #!/bin/bash
 set -euo pipefail
 
-# Install curl (needed to install uv) - use sudo if available, otherwise skip
-if command -v sudo &>/dev/null; then
-  sudo apt-get update
-  sudo apt-get install -y curl
-elif [ -w /var/lib/apt/lists ]; then
-  apt-get update
-  apt-get install -y curl
-else
-  echo "Warning: Cannot install curl via apt; assuming it's already installed"
+# Install curl (needed to install uv)
+if ! command -v curl &>/dev/null; then
+  if command -v sudo &>/dev/null; then
+    sudo apt-get update -qq 2>/dev/null || true
+    sudo apt-get install -y curl 2>/dev/null || true
+  fi
+  # If curl still not available, fail early with clear message
+  if ! command -v curl &>/dev/null; then
+    echo "ERROR: curl is required but not installed and cannot be installed without sudo"
+    echo 0 > /logs/verifier/reward.txt 2>/dev/null || true
+    exit 1
+  fi
 fi
 
 # Install uv
@@ -22,26 +25,6 @@ source "$HOME/.local/bin/env"
 if [ "$PWD" = "/" ]; then
     echo "Error: No working directory set."
     exit 1
-fi
-
-# Ensure /logs/verifier/ exists and is writable
-if [ ! -d /logs/verifier ]; then
-  if command -v sudo &>/dev/null; then
-    sudo mkdir -p /logs/verifier
-    sudo chown -R $(id -u):$(id -g) /logs/verifier
-  else
-    mkdir -p /logs/verifier
-  fi
-fi
-
-# Verify we can write to /logs/verifier/
-if [ ! -w /logs/verifier ]; then
-  if command -v sudo &>/dev/null; then
-    sudo chown -R $(id -u):$(id -g) /logs/verifier
-  else
-    echo "Error: /logs/verifier is not writable and sudo is not available"
-    exit 1
-  fi
 fi
 
 # Run pytest using uv

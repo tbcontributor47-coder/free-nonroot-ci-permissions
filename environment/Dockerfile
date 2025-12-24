@@ -24,5 +24,10 @@ RUN printf '#!/bin/bash\nset -e\n\necho "BUILD_STATUS=SUCCESS" > /app/build/outp
 # Switch to non-root user
 USER ciuser
 
+# Add entrypoint that ensures /logs/verifier exists with correct permissions
+COPY --chown=ciuser:ciuser entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
+
 # Default command does nothing; agent must run build explicitly
 CMD ["bash"]
