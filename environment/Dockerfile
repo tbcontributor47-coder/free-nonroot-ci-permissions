@@ -1,7 +1,13 @@
 FROM ubuntu:22.04
 
-# Create non-root user
-RUN useradd -m -u 1001 ciuser
+# Install sudo
+RUN apt-get update && \
+    apt-get install -y sudo curl && \
+    rm -rf /var/lib/apt/lists/*
+
+# Create non-root user and add to sudo group
+RUN useradd -m -u 1001 ciuser && \
+    echo "ciuser ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
 # Create logs directory with proper permissions for non-root user
 RUN mkdir -p /logs/verifier && \
