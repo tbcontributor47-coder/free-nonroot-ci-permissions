@@ -3,6 +3,10 @@ FROM ubuntu:22.04
 # Create non-root user
 RUN useradd -m -u 1001 ciuser
 
+# Create logs directory with proper permissions for non-root user
+RUN mkdir -p /logs/verifier && \
+    chown -R ciuser:ciuser /logs
+
 # Create application directory
 WORKDIR /app
 
