@@ -38,7 +38,7 @@ uvx \
 if [ $? -eq 0 ]; then
   echo 1 > "$HOME/logs/verifier/reward.txt"
 else
-  echo 0 > "$HOME/logs/verifier/reward.txt
+  echo 0 > "$HOME/logs/verifier/reward.txt"
 fi
 
 # Copy reward to Harbor's expected location if writable
