@@ -1,14 +1,21 @@
 #!/bin/bash
 set -u -o pipefail
 
-if ! command -v curl &>/dev/null; then
-  echo "ERROR: curl is required but not installed"
+if ! command -v python3 &>/dev/null; then
+  echo "ERROR: python3 is required but not installed"
   echo 0 > /logs/verifier/reward.txt 2>/dev/null || true
   exit 0
 fi
 
-# Install uv
-curl -LsSf https://astral.sh/uv/0.9.5/install.sh | sh
+# Install uv (without curl)
+python3 - <<'PY' | sh
+import urllib.request
+
+url = "https://astral.sh/uv/0.9.5/install.sh"
+with urllib.request.urlopen(url) as resp:
+    data = resp.read()
+print(data.decode("utf-8"), end="")
+PY
 
 # Load uv into PATH
 source "$HOME/.local/bin/env"

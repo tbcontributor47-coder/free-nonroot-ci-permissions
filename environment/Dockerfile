@@ -1,8 +1,10 @@
 FROM ubuntu:22.04
 
-# curl is used by the verifier to install uv
+# Keep the environment minimal and avoid test-only tools.
+# The verifier installs its own dependencies; we only include what's required
+# to fetch and run the verifier bootstrap without curl.
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl ca-certificates && \
+    apt-get install -y --no-install-recommends ca-certificates python3 && \
     rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
@@ -11,10 +13,14 @@ RUN useradd -m -u 1001 ciuser
 # Create application directory
 WORKDIR /app
 
-# Create build directory with secure permissions for ciuser
+# Create build directory with secure permissions:
+# - owned by root
+# - writable by group 'ciuser'
+# - not world-writable
+# - setgid so files created inside inherit group 'ciuser'
 RUN mkdir -p /app/build && \
-    chmod 755 /app/build && \
-    chown ciuser:ciuser /app/build
+    chown root:ciuser /app/build && \
+    chmod 2775 /app/build
 
 # Add a failing build script
 RUN printf '#!/bin/bash\nset -e\n\necho "BUILD_STATUS=SUCCESS" > /app/build/output.txt\n' \
