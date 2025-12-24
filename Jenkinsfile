@@ -28,11 +28,19 @@ echo "Workspace: $WORKSPACE"
 echo "User: $(id -un)"
 
 echo "Task path: $TASK_PATH"
-if [ ! -d "$TASK_PATH" ]; then
-  echo "ERROR: TASK_PATH does not exist: $TASK_PATH"
+if ! TASK_ABS="$(cd "$WORKSPACE/$TASK_PATH" 2>/dev/null && pwd -P)"; then
+  echo "ERROR: TASK_PATH cannot be resolved from WORKSPACE"
+  echo "WORKSPACE: $WORKSPACE"
+  echo "TASK_PATH: $TASK_PATH"
   echo "PWD: $(pwd)"
   echo "Workspace contents:"
   ls -la
+  exit 1
+fi
+
+echo "Task absolute path: $TASK_ABS"
+if [ ! -d "$TASK_ABS" ]; then
+  echo "ERROR: TASK_ABS does not exist: $TASK_ABS"
   exit 1
 fi
 
@@ -72,7 +80,9 @@ fi
 
 command -v harbor >/dev/null || { echo "harbor not found in PATH (did Preflight run?)"; exit 127; }
 
-harbor run --agent oracle --path "$TASK_PATH" 2>&1 | tee logs/oracle.log
+TASK_ABS="$(cd "$WORKSPACE/$TASK_PATH" 2>/dev/null && pwd -P)"
+echo "Task absolute path: $TASK_ABS"
+harbor run --agent oracle --path "$TASK_ABS" 2>&1 | tee logs/oracle.log
 '''
       }
     }
@@ -91,7 +101,9 @@ fi
 
 command -v harbor >/dev/null || { echo "harbor not found in PATH (did Preflight run?)"; exit 127; }
 
-harbor tasks check "$TASK_PATH" --model openai/@openai-tbench/gpt-5 2>&1 | tee logs/checks.log
+TASK_ABS="$(cd "$WORKSPACE/$TASK_PATH" 2>/dev/null && pwd -P)"
+echo "Task absolute path: $TASK_ABS"
+harbor tasks check "$TASK_ABS" --model openai/@openai-tbench/gpt-5 2>&1 | tee logs/checks.log
 '''
       }
     }
@@ -113,11 +125,14 @@ fi
 
 command -v harbor >/dev/null || { echo "harbor not found in PATH (did Preflight run?)"; exit 127; }
 
+TASK_ABS="$(cd "$WORKSPACE/$TASK_PATH" 2>/dev/null && pwd -P)"
+echo "Task absolute path: $TASK_ABS"
+
 echo "Running GPT-5 agent..."
-harbor run -a terminus-2 -m openai/@openai-tbench/gpt-5 -p "$TASK_PATH" 2>&1 | tee logs/agent-gpt5.log
+harbor run -a terminus-2 -m openai/@openai-tbench/gpt-5 -p "$TASK_ABS" 2>&1 | tee logs/agent-gpt5.log
 
 echo "Running Claude Sonnet 4.5 agent..."
-harbor run -a terminus-2 -m openai/@anthropic-tbench/claude-sonnet-4-5-20250929 -p "$TASK_PATH" 2>&1 | tee logs/agent-claude.log
+harbor run -a terminus-2 -m openai/@anthropic-tbench/claude-sonnet-4-5-20250929 -p "$TASK_ABS" 2>&1 | tee logs/agent-claude.log
 '''
       }
     }
