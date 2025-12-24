@@ -31,7 +31,7 @@ RUN printf '#!/bin/bash\nset -e\n\necho "BUILD_STATUS=SUCCESS" > /app/build/outp
 USER ciuser
 
 # Add entrypoint that ensures /logs/verifier exists with correct permissions
-COPY --chown=ciuser:ciuser entrypoint.sh /entrypoint.sh
+COPY --chown=ciuser:ciuser environment/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 
