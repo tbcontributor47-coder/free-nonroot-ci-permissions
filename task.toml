@@ -9,7 +9,7 @@ tags = ["permissions", "linux", "ci", "containers", "non-root"]
 
 [verifier]
 timeout_sec = 120.0
-test_command = "/tests/run_tests.sh"
+test_command = "bash -c 'mkdir -p /logs/verifier && chmod 777 /logs/verifier && exec /tests/run_tests.sh'"
 
 [agent]
 timeout_sec = 600.0
