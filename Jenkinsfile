@@ -115,6 +115,8 @@ if [ -n "$TRIAL_DIR" ]; then
   cat "$TRIAL_DIR/stdout" 2>/dev/null || echo "(no stdout)"
   echo "--- Trial stderr ---"
   cat "$TRIAL_DIR/stderr" 2>/dev/null || echo "(no stderr)"
+  echo "--- Test stdout (verifier/test-stdout.txt) ---"
+  cat "$TRIAL_DIR/verifier/test-stdout.txt" 2>/dev/null || echo "(no test-stdout.txt)"
 fi
 echo "================================================="
 
