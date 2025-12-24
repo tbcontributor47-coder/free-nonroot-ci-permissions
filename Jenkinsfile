@@ -151,6 +151,10 @@ TRIAL_DIR="$(find "$(dirname "$RESULT_JSON")" -mindepth 1 -maxdepth 1 -type d | 
 if [ -n "$TRIAL_DIR" ]; then
   echo "Trial dir: $TRIAL_DIR"
   ls -laR "$TRIAL_DIR" || true
+  echo "--- Trial config.json ---"
+  cat "$TRIAL_DIR/config.json" 2>/dev/null || echo "(no config.json)"
+  echo "--- Agent oracle.txt ---"
+  cat "$TRIAL_DIR/agent/oracle.txt" 2>/dev/null || echo "(no agent/oracle.txt)"
   echo "--- Trial stdout ---"
   cat "$TRIAL_DIR/stdout" 2>/dev/null || echo "(no stdout)"
   echo "--- Trial stderr ---"
