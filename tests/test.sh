@@ -24,6 +24,26 @@ if [ "$PWD" = "/" ]; then
     exit 1
 fi
 
+# Ensure /logs/verifier/ exists and is writable
+if [ ! -d /logs/verifier ]; then
+  if command -v sudo &>/dev/null; then
+    sudo mkdir -p /logs/verifier
+    sudo chown -R $(id -u):$(id -g) /logs/verifier
+  else
+    mkdir -p /logs/verifier
+  fi
+fi
+
+# Verify we can write to /logs/verifier/
+if [ ! -w /logs/verifier ]; then
+  if command -v sudo &>/dev/null; then
+    sudo chown -R $(id -u):$(id -g) /logs/verifier
+  else
+    echo "Error: /logs/verifier is not writable and sudo is not available"
+    exit 1
+  fi
+fi
+
 # Run pytest using uv
 uvx \
   -p 3.13 \
